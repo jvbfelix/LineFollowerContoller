@@ -11,13 +11,20 @@
       <button>Atualizar PWMA Curva</button>
       <the-mask type="text" name="pwmcb" v-model="pwmcb" placeholder="0.00" mask="#.##"></the-mask>
       <button>Atualizar PWMB Curva</button>
+      <div>
+        <button>Calibrar</button>
+        <button>Reiniciar Calibração</button>
+      </div>
     </div>
     <div class="status">
-      <p>Motor A:</p>
-      <p>Motor B:</p>
-      <p>Motor A Curva:</p>
-      <p>Motor B Curva:</p>
-      <p>Bateria:</p>
+      <p>Motor A:{{p_pwma}}</p>
+      <p>Motor B:{{p_pwmb}}</p>
+      <p>Motor A Curva:{{p_pwmca}}</p>
+      <p>Motor B Curva:{{p_pwmcb}}</p>
+      <p>Bateria:{{bateria}}</p>
+    </div>
+    <div v-if="loading" class="loading">
+      <div class="bar"></div>
     </div>
     </div>
   </div>
@@ -27,13 +34,45 @@
 // @ is an alias to /src
 //import HelloWorld from '@/components/HelloWorld.vue'
 import {TheMask} from 'vue-the-mask'
+import store from '../store'
 
 export default {
   name: 'Home',
   components: {
     TheMask
     //HelloWorld
-  }
+  },
+  data() {
+    return {
+    pwma:0,
+    pwmb:0,
+    pwmca:0,
+    pwmcb:0,
+    p_pwma:0,
+    p_pwmb:0,
+    p_pwmca:0,
+    p_pwmcb:0,
+    bateria:0,
+    }
+  },
+  computed: {
+    loading: () => store.getters.loading,
+  },
+  created: function () {
+    const option = { name: 'RC Line'}
+    store.dispatch('webBluetooth/addDevice',option)
+    let options = {device: 'RC Line'}
+    store.dispatch('webBluetooth/connectDevice',options)
+    let option2 = { device: 'RC Line', uuid: BluetoothUUID.canonicalUUID(0x180F) }
+    store.dispatch('webBluetooth/discoverServices',option2)
+    let valueToWrite = Uint8Array.of(1)
+    let option1 = { characteristic: 'RC Line', value: valueToWrite }
+    store.dispatch('webBluetooth/writeCharacteristic',option1)
+  },
+  beforeDestroy: function () {
+    let options = {device: 'RC Line'}
+    store.dispatch('webBluetooth/disconnectDevice',options)
+  },
 }
 </script>
 
@@ -112,5 +151,28 @@ body {
   text-align: left;
   color: #FFFFFF;
   padding: 25px;
+}
+
+.loading {
+  background-color: #000000BB;
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  .bar {
+    border: 4px solid #FFFFFF;
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
+    background: radial-gradient(#FFFFFF00, #FFFFFF55);
+    animation-name: girar;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+  }
 }
 </style>
